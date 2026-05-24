@@ -37,9 +37,22 @@ public class Bt4CharaPak {
 		return name;
 	}
 	public boolean repack() throws IOException {
+		String[] allowedExts = { "cma", "cmr", "dat", "dbt", "mdl", "pak", "pck" };
 		pakFolder = parent.toPath().resolve(name.substring(0, name.length() - 4)).toFile();
 		if (pakFolder != null) {
-			File[] paramFiles = pakFolder.listFiles();
+			int numParamFiles = 0;
+			File[] allParamFiles = pakFolder.listFiles();
+			File[] paramFiles = new File[allParamFiles.length];
+			for (int fileCnt = 0; fileCnt < allParamFiles.length; fileCnt++) {
+				for (String ext: allowedExts) {
+					if (allParamFiles[fileCnt].getName().toLowerCase().endsWith("." + ext)) {
+						paramFiles[numParamFiles] = allParamFiles[fileCnt];
+						numParamFiles++;
+						break;
+					}
+				}
+			}
+			System.arraycopy(paramFiles, 0, paramFiles, 0, numParamFiles);
 			if (paramFiles != null) {
 				int[] paramIds = new int[paramFiles.length];
 				Arrays.sort(paramFiles);
@@ -99,7 +112,6 @@ public class Bt4CharaPak {
 		}
 		else csvNum = 1;
 		String[] paramNames = CsvHandler.getParamNames(new File("res/param-names-" + csvNum + ".csv"), includeNum);
-		System.out.println(csvNum + ", " + includeNum + ", " + paramNames.length);
 		for (int offsetCnt = 0; offsetCnt < offsets.length - 1; offsetCnt++) {
 			if (sizes[offsetCnt] != 0) {
 				byte[] paramBytes = new byte[sizes[offsetCnt]];
