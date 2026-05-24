@@ -1,0 +1,10 @@
+id,name,ext
+17,common_param,dat
+18,melee_param,dat
+19,kidan_param,dat
+20,movement_param,dat
+21,voice_speaker,dat
+23,blast_param,dat
+24,skill_param,dat
+26,com_param,cmr
+27,camera_param,dat
