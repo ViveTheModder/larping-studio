@@ -14,7 +14,7 @@ public class CsvHandler {
 		Scanner sc = new Scanner(csv);
 		//Validate header
 		if (sc.hasNextLine()) {
-			if (!sc.nextLine().equals("id,name,ext")) {
+			if (!sc.nextLine().startsWith("id,name")) {
 				sc.close();
 				return null;
 			}
@@ -23,10 +23,9 @@ public class CsvHandler {
 		while (sc.hasNextLine()) {
 			String line = sc.nextLine();
 			String[] lineArr = line.split(",");
-			if (lineArr.length == 3) {
+			if (lineArr.length >= 2) {
 				int paramId = Integer.parseInt(lineArr[0]);
-				if (paramId < paramNames.length)
-					paramNames[paramId] = lineArr[1] + "." + lineArr[2];
+				if (paramId < paramNames.length) paramNames[paramId] = lineArr[lineArr.length - 2] + "." + lineArr[lineArr.length - 1];
 				else {
 					if (includeNum) {
 						paramNames[lineCnt] = lineArr[0] + "_" + lineArr[1] + "." + lineArr[2];
@@ -37,6 +36,28 @@ public class CsvHandler {
 		}
 		sc.close();
 		return paramNames;
+	}
+	public static int[] getColumnVals(File csv, int colId) throws IOException {
+		int[] colVals = new int[getNumRows(csv) - 1]; 
+		Scanner sc = new Scanner(csv);
+		//Validate header
+		if (sc.hasNextLine()) {
+			if (!sc.nextLine().startsWith("id")) {
+				sc.close();
+				return null;
+			}
+		}
+		while (sc.hasNextLine()) {
+			String line = sc.nextLine();
+			String[] lineArr = line.split(",");
+			if (lineArr.length >= 2) {
+				int rowId = Integer.parseInt(lineArr[0]);
+				if (rowId < colVals.length && colId < lineArr.length)
+					colVals[rowId] = Integer.parseInt(lineArr[colId]);
+			}
+		}
+		sc.close();
+		return colVals;
 	}
 	
 	private static int getLastId(File csv) throws IOException {

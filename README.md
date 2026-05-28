@@ -1,5 +1,5 @@
 # larping-studio
-A modding tool (with **both CLI and GUI** support) intended **only for DBZ Budokai Tenkaichi 4 character costume files**.
+A modding tool (with **both CLI and GUI** support) intended **only for DBZ Budokai Tenkaichi 4 character costume files**. Also known as OpenBT4.
 
 Written to be a **parody of [Sparking Studio](https://mega.nz/file/OYM3TQrQ#Sq8_IoOpFI30vF4dDr0R0-JmpQbaseY0fQgsBGjiWxk)**, which is close-source and supports more than just BT4. 
 

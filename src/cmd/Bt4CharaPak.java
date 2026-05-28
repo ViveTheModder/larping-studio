@@ -37,9 +37,9 @@ public class Bt4CharaPak {
 		return name;
 	}
 	public boolean repack() throws IOException {
-		String[] allowedExts = { "cma", "cmr", "dat", "dbt", "mdl", "pak", "pck" };
+		String[] allowedExts = { "anm", "cma", "cmr", "dat", "dbt", "mdl", "pak", "pck", "unk" };
 		pakFolder = parent.toPath().resolve(name.substring(0, name.length() - 4)).toFile();
-		if (pakFolder != null) {
+		if (pakFolder.isDirectory()) {
 			int numParamFiles = 0;
 			File[] allParamFiles = pakFolder.listFiles();
 			File[] paramFiles = new File[allParamFiles.length];
@@ -54,25 +54,31 @@ public class Bt4CharaPak {
 			}
 			System.arraycopy(paramFiles, 0, paramFiles, 0, numParamFiles);
 			if (paramFiles != null) {
-				int[] paramIds = new int[paramFiles.length];
 				Arrays.sort(paramFiles);
-				for (int paramCnt = 0; paramCnt < paramFiles.length; paramCnt++) {
+				int numLastParam = Integer.parseUnsignedInt(paramFiles[paramFiles.length - 1].getName().split("_")[0]);
+				int[] paramIds = new int[numLastParam + 1];
+				for (int paramCnt = 0; paramCnt < numLastParam + 1; paramCnt++) {
+					if (paramCnt < paramFiles.length)
+						paramIds[paramCnt] = Integer.parseUnsignedInt(paramFiles[paramCnt].getName().split("_")[0]);
+					else paramIds[paramCnt] = paramCnt;
+					//Test these out
 					String paramName = paramFiles[paramCnt].getName().toLowerCase();
 					if (paramName.contains("camera")) paramIds[paramCnt] = paramCnt;
-					else paramIds[paramCnt] = Integer.parseUnsignedInt(paramFiles[paramCnt].getName().split("_")[0]);	
 				}
 				for (int paramCnt = 0; paramCnt < paramIds.length; paramCnt++) {
 					for (int offsetCnt = 0; offsetCnt < offsets.length; offsetCnt++) {
 						if (offsetCnt == paramIds[paramCnt]) {
-							RandomAccessFile param = new RandomAccessFile(paramFiles[paramCnt], "r");
-							byte[] paramBytes = new byte[(int) param.length()];
-							param.read(paramBytes);
-							param.close();
-							pak.seek((offsetCnt + 1) * 4);
-							pak.write(ParamHandler.getValBytes(offsets[paramIds[paramCnt]]));
-							pak.seek(offsets[paramIds[paramCnt]]);
-							pak.write(paramBytes);
-							offsets[paramIds[paramCnt]] = offsets[paramIds[paramCnt]] + paramBytes.length;
+							if (paramCnt < paramFiles.length) {
+								RandomAccessFile param = new RandomAccessFile(paramFiles[paramCnt], "r");
+								byte[] paramBytes = new byte[(int) param.length()];
+								param.read(paramBytes);
+								param.close();
+								pak.seek((offsetCnt + 1) * 4);
+								pak.write(ParamHandler.getValBytes(offsets[paramIds[paramCnt]]));
+								pak.seek(offsets[paramIds[paramCnt]]);
+								pak.write(paramBytes);
+								offsets[paramIds[paramCnt]] = offsets[paramIds[paramCnt]] + paramBytes.length;
+							}
 							//Do not check the next offsets in line once the offset and parameter file IDs match
 							break;
 						}
@@ -80,6 +86,7 @@ public class Bt4CharaPak {
 						else if (offsetCnt > 0) {
 							/* Overwrite the offsets between the offset of the parameter ID and the offset of its predecessor
 							with the last assigned offset, in order for those in-between files (not present when unpacked) to have a file size of zero */
+							if (paramCnt == 0) paramCnt++;
 							if (offsetCnt < paramIds[paramCnt] && offsetCnt > paramIds[paramCnt - 1]) {
 								pak.seek((offsetCnt + 1) * 4);
 								pak.write(ParamHandler.getValBytes(offsets[paramIds[paramCnt - 1]]));
@@ -117,13 +124,16 @@ public class Bt4CharaPak {
 				byte[] paramBytes = new byte[sizes[offsetCnt]];
 				pak.seek(offsets[offsetCnt]);
 				pak.read(paramBytes);
-				String paramFileName = "unknown";
+				String paramFileName = "unknown.unk";
 				String prefix = "0";
 				if (!includeNum) {
+					if (offsetCnt > 99) prefix = "";
 					if (offsetCnt < 10) prefix = "00";
 					prefix += offsetCnt + "_";
 				}
-				if (paramNames[offsetCnt] != null) paramFileName = paramNames[offsetCnt];
+				if (offsetCnt < paramNames.length) {
+					if (paramNames[offsetCnt] != null) paramFileName = paramNames[offsetCnt];
+				}
 				File paramFile = pakFolder.toPath().resolve(prefix + paramFileName).toFile();
 				RandomAccessFile param = new RandomAccessFile(paramFile, "rw");
 				param.write(paramBytes);
@@ -135,9 +145,21 @@ public class Bt4CharaPak {
 	
 	private int getNumOffsets() throws IOException {
 		byte[] valBytes = new byte[4];
-		pak.seek(0);
+		int actualSize = (int) pak.length();
+		pak.seek(4);
 		pak.read(valBytes);
-		return ParamHandler.getVal(valBytes) + 1;
+		int startContents = ParamHandler.getVal(valBytes);
+		int posOfLastOffset = startContents;
+		for (int pos = startContents - 4; pos >= 4; pos -= 4) {
+			pak.seek(pos);
+			pak.read(valBytes);
+			int offset = ParamHandler.getVal(valBytes);
+			if (actualSize == offset) {
+				posOfLastOffset = pos;
+				break;
+			}
+		}
+		return posOfLastOffset / 4;
 	}
 	private void setOffsets(int numOffsets) throws IOException {
 		offsets = new int[numOffsets];
@@ -171,8 +193,18 @@ public class Bt4CharaPak {
 			else valid = false;
 		}
 		//BT4 Character Costume PAK: Type 2 (Visual Assets Only)
-		else if (numFiles == 52)
-			valid = offset52 == actualSize ? true: false;
+		else if (numFiles == 52) {
+			pak.seek(4);
+			pak.read(valBytes);
+			int lastIndexEntry = ParamHandler.getVal(valBytes) - 4;
+			for (int pos = lastIndexEntry; pos >= (numFiles + 1) * 4; pos -= 4) {
+				pak.seek(pos);
+				pak.read(valBytes);
+				int offset = ParamHandler.getVal(valBytes);
+				valid = actualSize == offset ? true: false;
+				if (valid == true) break;
+			}
+		}
 		//BT4 Character Costume PAK: Type 3 (Gameplay Parameters, HUDs and Cameras)
 		else if (numFiles == 3) {
 			if (name.toLowerCase().contains("camera")) valid = true;

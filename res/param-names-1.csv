@@ -1,4 +1,5 @@
 id,name,ext
+0,hud,dbt
 1,hurtbox,mdl
 2,model,mdl
 3,face_1,mdl
@@ -15,8 +16,17 @@ id,name,ext
 14,face_6,mdl
 15,face_7,mdl
 16,face_8,mdl
+17,common_param,dat
+18,melee_param,dat
+19,kidan_param,dat
+20,movement_param,dat
+21,voice_speaker,dat
 22,gimmick_param,dat
+23,blast_param,dat
+24,skill_param,dat
 25,textures_dmg,dbt
+26,com_param,cmr
+27,camera_param,dat
 28,support_1,anm
 29,support_2,anm
 30,support_3,anm
